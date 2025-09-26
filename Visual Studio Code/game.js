@@ -10,6 +10,7 @@ let targetAppearTimer;
 let currentTarget = null; 
 let isGameRunning = false;
 let playerName = "名無し"; // ニックネームを保存する変数
+let countdownInterval; // 新しいカウントダウンタイマー
 
 // === DOM要素の取得 ===
 const timerDisplay = document.getElementById('timer');
@@ -23,6 +24,8 @@ const finalScoreDisplay = document.getElementById('finalScore');
 const nicknameInput = document.getElementById('nickname');
 const nicknameInputArea = document.getElementById('nicknameInputArea');
 const playerNicknameDisplay = document.getElementById('playerNickname');
+const rulesAndPrizeArea = document.getElementById('rulesAndPrize');
+const countdownDisplay = document.getElementById('countdown');
 
 
 // === 関数：ゲーム開始 ===
@@ -35,34 +38,66 @@ window.startGame = function() {
         alert("ニックネームを入力してください！");
         return; // ニックネームがなければゲームを開始しない
     }
-    
-    playerName = inputName;
-    playerNicknameDisplay.textContent = playerName; // ゲーム画面に表示
 
+    startCountdown();
+}
+
+
+// === 関数：カウントダウンを開始 ===
+function startCountdown() {
+    let count = 3;
+    countdownDisplay.textContent = count;
+    
+    // UIをカウントダウンモードに設定
+    startButton.classList.add('hidden');
+    nicknameInputArea.classList.add('hidden');
+    rulesAndPrizeArea.classList.add('hidden');
+    countdownDisplay.classList.remove('hidden');
+    gameArea.style.display = 'block'; // ゲームエリアの枠を表示 (中身はまだ空)
+    
+    // 1秒ごとにカウントダウン
+    countdownInterval = setInterval(() => {
+        count--;
+        if (count > 0) {
+            countdownDisplay.textContent = count;
+        } else if (count === 0) {
+            countdownDisplay.textContent = "スタート！";
+        } else {
+            // カウントが終了したら
+            clearInterval(countdownInterval);
+            countdownDisplay.classList.add('hidden'); // カウントダウン表示を隠す
+            
+            // 実際のゲーム開始処理を呼び出す
+            initializeGame();
+        }
+    }, 1000);
+}
+
+
+// === 関数：ゲームの初期化（以前のstartGameの中身を移動） ===
+function initializeGame() {
     // 状態をリセット
+    playerName = nicknameInput.value.trim();
+    playerNicknameDisplay.textContent = playerName; 
     score = 0;
     timeLeft = GAME_DURATION;
     isGameRunning = true;
     
+    // 全てのタイマーをクリア (念のため)
     clearAllTimers();
 
     // UIの表示を更新
     scoreDisplay.textContent = score;
     timerDisplay.textContent = timeLeft;
-    startButton.classList.add('hidden'); // スタートボタンを隠す
-    gameOverMessage.classList.add('hidden'); // ゲームオーバーメッセージを隠す
-    nicknameInputArea.classList.add('hidden'); // ニックネーム入力エリアを隠す
     gameArea.innerHTML = ''; // エリアをクリア
 
-    // ゲームエリアを表示に戻す
-    gameArea.style.display = 'block'; 
-
-    // メインのタイマーを開始
-    gameInterval = setInterval(updateGame, 1000);
+    // メインのタイマーを開始 (1秒ごとに実行)
+    gameInterval = setInterval(updateGame, 1000); 
 
     // 最初のターゲットを作成
     createTarget();
 }
+
 
 // === 関数：ゲームの進行 (1秒ごとに実行) ===
 function updateGame() {
@@ -152,6 +187,7 @@ function endGame() {
 // === 関数：ゲームのリセット ===
 window.resetGame = function() {
     clearAllTimers();
+    clearInterval(countdownInterval);
     
     score = 0;
     timeLeft = GAME_DURATION;
@@ -161,12 +197,15 @@ window.resetGame = function() {
     // --- ニックネーム入力エリアを再表示 ---
     gameOverMessage.classList.add('hidden');
     nicknameInputArea.classList.remove('hidden'); 
+    rulesAndPrizeArea.classList.remove('hidden'); // ルールエリアを再表示
     startButton.textContent = 'ゲームスタート';
     startButton.classList.remove('hidden');
 
     // ゲームエリアを非表示のままにする (空白を消す)
     gameArea.style.display = 'none';
     
+    // カウントダウン表示を確実に隠す
+    countdownDisplay.classList.add('hidden');
     // ニックネーム表示も初期状態に戻す
     playerNicknameDisplay.textContent = '---';
 }
@@ -205,17 +244,17 @@ function endGame() {
 
     // 3. 特典メッセージをスコアに応じて設定
     let messageHTML = '';
-    const PRIZE_THRESHOLD = 35; // クーポン獲得に必要な点数
+    const PRIZE_THRESHOLD = 30; // クーポン獲得に必要な点数
 
     if (score >= PRIZE_THRESHOLD) {
-        // 35点以上の場合のメッセージ（クーポン獲得！）
+        // 30点以上の場合のメッセージ（クーポン獲得！）
         messageHTML = `
             <p>🎉おめでとうございます！🎉</p>
-            <p><span class="prize-highlight">３５点以上</span>を達成しました！</p>
-            <p>この画面をスタッフにご提示で、<span class="prize-highlight">５００円クーポン</span>を差し上げます！</p>
+            <p><span class="prize-highlight">３０点以上</span>を達成しました！</p>
+            <p>この画面をスタッフにご提示で、<span class="prize-highlight">１００円クーポン</span>を差し上げます！</p>
         `;
     } else {
-        // 35点未満の場合のメッセージ（もう少し）
+        // 30点未満の場合のメッセージ（もう少し）
         messageHTML = `<p>残念！クーポン獲得には、あと **${PRIZE_THRESHOLD - score}点** 必要です！</p><p>もう一度チャレンジ！</p>`;
     }
     
